@@ -17,7 +17,9 @@ import {
   ArrowRight,
   ArrowLeft,
   ShieldCheck,
+  MapPin,
 } from 'lucide-react';
+
 
 export const ProfilePage: React.FC = () => {
   const { lang, currentUser, loginWithGoogle, updateUserProfile, setCurrentPage } = useApp();
@@ -93,7 +95,16 @@ export const ProfilePage: React.FC = () => {
                   {currentUser.role}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 font-mono mb-2">{currentUser.email}</p>
+              <p className="text-xs text-slate-400 font-mono mb-1">{currentUser.email}</p>
+              <div className="flex items-center justify-center sm:justify-start gap-1.5 text-xs text-cyan-300 font-medium mb-2">
+                <span className="text-sm">{currentUser.countryFlag || '🇸🇦'}</span>
+                <MapPin className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <span>
+                  {currentUser.country || (isAr ? 'المملكة العربية السعودية' : 'Saudi Arabia')}
+                  {currentUser.city ? ` - ${currentUser.city}` : ''}
+                </span>
+                <span className="text-[10px] text-slate-500 font-mono">({isAr ? 'تم الفحص تلقائياً' : 'Auto-detected'})</span>
+              </div>
               <p className="text-xs text-slate-300 max-w-md">{currentUser.bio}</p>
             </div>
           </div>

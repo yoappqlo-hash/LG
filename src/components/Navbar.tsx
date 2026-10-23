@@ -28,7 +28,7 @@ export const Navbar: React.FC = () => {
     currentUser,
     loginWithGoogle,
     logout,
-    visitorCount,
+    onlinePlayersCount,
     siteSettings,
     theme,
     setTheme,
@@ -79,10 +79,13 @@ export const Navbar: React.FC = () => {
                 {isAr ? siteSettings.announcementAr : siteSettings.announcement}
               </p>
             </div>
-            {/* Live Visitors Counter Indicator */}
-            <div className="flex items-center gap-1.5 text-slate-300 font-mono shrink-0 ms-3 bg-slate-900/60 px-2 py-0.5 rounded-full border border-slate-700/60 text-[10px]">
+            {/* Real Live Players Online Indicator */}
+            <div className="flex items-center gap-1.5 text-slate-200 font-mono shrink-0 ms-3 bg-slate-900/80 px-2.5 py-0.5 rounded-full border border-emerald-500/40 text-[10px] shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
               <Users className="w-3 h-3 text-emerald-400" />
-              <span>{visitorCount.toLocaleString()} {isAr ? 'لاعب متصل' : 'online'}</span>
+              <span>
+                {onlinePlayersCount} {isAr ? (onlinePlayersCount === 1 ? 'متصل حقيقي' : 'متصلين') : (onlinePlayersCount === 1 ? 'real player online' : 'players online')}
+              </span>
             </div>
           </div>
         </div>

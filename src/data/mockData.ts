@@ -354,41 +354,8 @@ export const INITIAL_DAILY_REWARDS: DailyRewardItem[] = [
   },
 ];
 
-export const INITIAL_CHAT_MESSAGES: ChatMessage[] = [
-  {
-    id: 'chat-1',
-    uid: 'system-admin',
-    displayName: 'Apex Master 🛡️',
-    photoURL: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?auto=format&fit=crop&w=120&q=80',
-    message: 'مرحباً بجميع الأعضاء في الشات العام لمنصة ApexDrop! نرجو التحلي بالاحترام، وسيتم حجب أي كلمات غير لائقة تلقائياً.',
-    timestamp: 'منذ قليل',
-    role: 'admin',
-    badgeTitle: 'المالك والمشرف العام',
-    wasFiltered: false,
-  },
-  {
-    id: 'chat-2',
-    uid: 'user-vip-1',
-    displayName: 'ShadowHunter',
-    photoURL: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80',
-    message: 'سحبت قبل شوي حساب ستيم من الدروب وشغال 100%، شكراً للإدارة على المصداقية 🔥',
-    timestamp: 'منذ 5 دقائق',
-    role: 'vip',
-    badgeTitle: 'عضو VIP',
-    wasFiltered: false,
-  },
-  {
-    id: 'chat-3',
-    uid: 'user-gamer-2',
-    displayName: 'FaisalGamer99',
-    photoURL: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=120&q=80',
-    message: 'عجلة الحظ عطتني تذكرتين إضافية، بإذن الله أفوز في سحب كرت الشاشة القادم 🎮',
-    timestamp: 'منذ دقيقة',
-    role: 'user',
-    badgeTitle: 'لاعب نشط',
-    wasFiltered: false,
-  },
-];
+export const INITIAL_CHAT_MESSAGES: ChatMessage[] = [];
+
 
 export const INITIAL_SETTINGS: SiteSettings = {
   siteName: 'ApexDrop',
@@ -396,7 +363,7 @@ export const INITIAL_SETTINGS: SiteSettings = {
   announcement: '🔥 Flash Drop: 50+ Steam and Xbox accounts released! Spin the lucky wheel now to win instant keys!',
   announcementAr: '🔥 دروب حصري: تم ضخ أكثر من 50 حساب ستيم وإكس بوكس جديد! دور عجلة الحظ الآن لربح كود فوري!',
   announcementActive: true,
-  totalVisitors: 28450,
+  totalVisitors: 1,
   nextDropCountdown: '04:18:32',
   maintenanceMode: false,
   dropNotice: 'Next Mega Drop arrives in 4 hours with 100+ Discord Nitro and Spotify codes.',

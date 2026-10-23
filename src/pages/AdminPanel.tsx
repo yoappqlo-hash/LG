@@ -31,6 +31,9 @@ import {
   AlertTriangle,
   Send,
   Zap,
+  Eye,
+  EyeOff,
+  Save,
 } from 'lucide-react';
 import { aiEnhanceGame, aiEnhanceAccount, aiGenerateDailyRewards } from '../lib/hiddenAiEngine';
 
@@ -62,6 +65,7 @@ export const AdminPanel: React.FC = () => {
     siteSettings,
     updateSiteSettings,
     visitorCount,
+    onlinePlayersCount,
     resetToCleanRealData,
     lockAdmin,
     setCurrentPage,
@@ -135,7 +139,48 @@ export const AdminPanel: React.FC = () => {
   const [annText, setAnnText] = useState(siteSettings.announcement);
   const [annTextAr, setAnnTextAr] = useState(siteSettings.announcementAr);
   const [countdownText, setCountdownText] = useState(siteSettings.nextDropCountdown);
-  const [pinText, setPinText] = useState(siteSettings.adminPin);
+  
+  // Custom Admin Login Password / Master PIN state
+  const [newAdminPin, setNewAdminPin] = useState('');
+  const [confirmAdminPin, setConfirmAdminPin] = useState('');
+  const [showPinPlain, setShowPinPlain] = useState(false);
+  const [pinChangeMsg, setPinChangeMsg] = useState<{ text: string; isError: boolean } | null>(null);
+
+  const handleSaveNewPin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAdminPin.trim()) {
+      setPinChangeMsg({
+        text: isAr ? 'يرجى كتابة كلمة السر الجديدة' : 'Please enter a new password',
+        isError: true,
+      });
+      return;
+    }
+    if (newAdminPin.trim().length < 4) {
+      setPinChangeMsg({
+        text: isAr ? 'يجب أن تتكون كلمة السر من 4 خانات على الأقل' : 'PIN/Password must be at least 4 characters',
+        isError: true,
+      });
+      return;
+    }
+    if (newAdminPin.trim() !== confirmAdminPin.trim()) {
+      setPinChangeMsg({
+        text: isAr ? 'كلمتا السر غير متطابقتين!' : 'Passwords do not match!',
+        isError: true,
+      });
+      return;
+    }
+
+    updateSiteSettings({ adminPin: newAdminPin.trim() });
+    setPinChangeMsg({
+      text: isAr
+        ? '✅ تم تحديث وتغيير كلمة سر لوحة الإدارة بنجاح! احفظ الرمز الجديد لدخولك القادم.'
+        : '✅ Admin PIN / password updated successfully!',
+      isError: false,
+    });
+    setNewAdminPin('');
+    setConfirmAdminPin('');
+    setTimeout(() => setPinChangeMsg(null), 6000);
+  };
 
   // AI Assistant status notice
   const [aiNotice, setAiNotice] = useState<string | null>(null);
@@ -525,13 +570,14 @@ export const AdminPanel: React.FC = () => {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
                   <span className="text-[11px] font-mono text-slate-400">
-                    {isAr ? 'إجمالي الزوار' : 'Total Visitors'}
+                    {isAr ? 'اللاعبون المتصلون الآن' : 'Live Online Players'}
                   </span>
-                  <div className="text-2xl font-black text-cyan-400 font-mono">
-                    {visitorCount.toLocaleString()}
+                  <div className="text-2xl font-black text-cyan-400 font-mono flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>{onlinePlayersCount}</span>
                   </div>
-                  <span className="text-[10px] text-emerald-400 block">
-                    {isAr ? 'عداد نشط ومباشر' : 'Live & Active'}
+                  <span className="text-[10px] text-slate-400 block font-mono">
+                    {visitorCount} {isAr ? 'زيارة حقيقية مسجلة' : 'tracked sessions'}
                   </span>
                 </div>
 
@@ -1089,6 +1135,110 @@ export const AdminPanel: React.FC = () => {
                 </p>
               </div>
 
+              {/* Master PIN / Password Change Card (Requested by user) */}
+              <div className="p-6 rounded-3xl bg-slate-900 border border-amber-500/40 space-y-5 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2.5 rounded-2xl bg-amber-500/20 text-amber-400 shrink-0 mt-0.5">
+                      <KeyRound className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-white flex items-center gap-2">
+                        <span>{isAr ? 'تغيير كلمة سر دخول الأدمن (Master PIN)' : 'Change Master Admin PIN / Password'}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-mono border border-amber-500/20">
+                          {isAr ? 'حماية عالية' : 'Security'}
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-300 mt-1">
+                        {isAr
+                          ? 'الرمز السري المخصص لفتح لوحة الأدمن الحصرية عند الضغط على Ctrl + Shift + A أو الرابط السري ?admin=true.'
+                          : 'Secret PIN to unlock the master console via hotkey Ctrl+Shift+A or secret URL.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex sm:flex-col items-center sm:items-end justify-between gap-1 p-2.5 rounded-xl bg-slate-950 border border-slate-800 font-mono shrink-0">
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider">{isAr ? 'الرمز الحالي:' : 'Current PIN:'}</span>
+                    <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                      {siteSettings.adminPin || '2026'}
+                    </span>
+                  </div>
+                </div>
+
+                {pinChangeMsg && (
+                  <div
+                    className={`p-3 rounded-2xl text-xs font-semibold flex items-center gap-2.5 ${
+                      pinChangeMsg.isError
+                        ? 'bg-rose-950/60 border border-rose-500/40 text-rose-300'
+                        : 'bg-emerald-950/60 border border-emerald-500/40 text-emerald-300'
+                    }`}
+                  >
+                    {pinChangeMsg.isError ? (
+                      <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+                    ) : (
+                      <Check className="w-4 h-4 shrink-0 text-emerald-400" />
+                    )}
+                    <span>{pinChangeMsg.text}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSaveNewPin} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+                        {isAr ? 'كلمة السر / رمز PIN الجديد' : 'New Password / PIN'}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPinPlain ? 'text' : 'password'}
+                          required
+                          value={newAdminPin}
+                          onChange={(e) => setNewAdminPin(e.target.value)}
+                          placeholder={isAr ? 'أدخل كلمة سر جديدة (أرقام أو حروف)' : 'New alphanumeric PIN'}
+                          className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 font-mono tracking-widest outline-none transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPinPlain((p) => !p)}
+                          className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                        >
+                          {showPinPlain ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+                        {isAr ? 'تأكيد كلمة السر الجديدة' : 'Confirm New PIN'}
+                      </label>
+                      <input
+                        type={showPinPlain ? 'text' : 'password'}
+                        required
+                        value={confirmAdminPin}
+                        onChange={(e) => setConfirmAdminPin(e.target.value)}
+                        placeholder={isAr ? 'أعد إدخال كلمة السر لتأكيدها' : 'Confirm new PIN'}
+                        className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 font-mono tracking-widest outline-none transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
+                    <p className="text-[11px] text-slate-400">
+                      {isAr
+                        ? '🔒 كلمة السر مشفرة ومحفوظة فوراً. احرص على تذكرها للدخول في المرات القادمة.'
+                        : '🔒 Password is saved instantly. Keep it safe to access admin panel.'}
+                    </p>
+                    <button
+                      type="submit"
+                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-bold shadow-lg shadow-amber-950/40 flex items-center gap-2 cursor-pointer transition-all"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>{isAr ? 'حفظ وتفعيل كلمة السر الجديدة' : 'Save New Master PIN'}</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+
               {/* Reset to Clean Real Data Card (Requested by user) */}
               <div className="p-6 rounded-3xl bg-rose-950/20 border border-rose-500/40 space-y-4">
                 <div className="flex items-start gap-3">
@@ -1125,11 +1275,14 @@ export const AdminPanel: React.FC = () => {
                 </button>
               </div>
 
-              {/* Live Visitor Counter & Announcement Controls */}
+              {/* Real Visitor Counter Controls */}
               <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-4">
                 <h3 className="text-sm font-bold text-white">
-                  {isAr ? 'التحكم المباشر في عداد الزوار' : 'Live Visitor Counter Controller'}
+                  {isAr ? 'إحصائيات وعداد الزيارات الفعلي' : 'Real Visitor Counter'}
                 </h3>
+                <p className="text-xs text-slate-400">
+                  {isAr ? 'العداد يسجل فقط الزيارات الحقيقية الفعلية بدون أي أرقام وهمية أو تكرار مصطنع.' : 'Tracks strictly genuine visitor sessions without fake simulation.'}
+                </p>
                 <div className="flex items-center gap-3">
                   <input
                     type="number"

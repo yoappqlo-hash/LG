@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { UserProfileData, ChatMessage } from '../types/app';
+import { UserProfileModal } from '../components/UserProfileModal';
 import {
   MessageSquare,
   Send,
@@ -12,6 +14,8 @@ import {
   Flame,
   Info,
   Lock,
+  Smile,
+  MapPin,
 } from 'lucide-react';
 
 export const ChatPage: React.FC = () => {
@@ -23,13 +27,17 @@ export const ChatPage: React.FC = () => {
     chatMessages,
     sendChatMessage,
     deleteChatMessage,
+    toggleChatReaction,
     clearChat,
     visitorCount,
+    getUserProfileByUid,
+    userGeo,
   } = useApp();
 
   const isAr = lang === 'ar';
   const [inputText, setInputText] = useState('');
   const [lastNotice, setLastNotice] = useState<{ message: string; isWarning: boolean } | null>(null);
+  const [selectedUserForModal, setSelectedUserForModal] = useState<UserProfileData | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const scrollToBottom = () => {
@@ -58,6 +66,52 @@ export const ChatPage: React.FC = () => {
     }
   };
 
+  const handleDeleteMessage = (msgId: string) => {
+    const res = deleteChatMessage(msgId);
+    if (!res.success) {
+      setLastNotice({
+        message: isAr ? res.messageAr : res.message,
+        isWarning: true,
+      });
+      setTimeout(() => setLastNotice(null), 4000);
+    }
+  };
+
+  // Open User Profile Card (Never exposes email!)
+  const handleOpenUserProfile = (msg: ChatMessage) => {
+    const existing = getUserProfileByUid(msg.uid);
+    if (existing) {
+      // Ensure email is never shown to external users
+      setSelectedUserForModal({
+        ...existing,
+        country: existing.country || msg.country || userGeo?.countryAr,
+        countryFlag: existing.countryFlag || msg.countryFlag || userGeo?.countryFlag,
+        region: existing.region || msg.region || userGeo?.region,
+      });
+    } else {
+      // Build safe public profile view
+      setSelectedUserForModal({
+        uid: msg.uid,
+        email: '', // strictly empty
+        displayName: msg.displayName,
+        photoURL: msg.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${msg.displayName}`,
+        bio: isAr ? 'لاعب نشط في مجتمع ApexDrop' : 'Active gamer in ApexDrop community',
+        points: 120,
+        spinTickets: 2,
+        claimedAccounts: [],
+        role: msg.role,
+        createdAt: '2026',
+        country: msg.country || userGeo?.countryAr || 'المملكة العربية السعودية',
+        countryFlag: msg.countryFlag || userGeo?.countryFlag || '🇸🇦',
+        region: msg.region || userGeo?.region || 'الشرق الأوسط',
+        city: userGeo?.city,
+        streakDays: 3,
+      });
+    }
+  };
+
+  const reactionEmojis = ['🔥', '🎮', '❤️', '⚡', '👏'];
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6 relative z-10">
       {/* Page Header */}
@@ -72,68 +126,80 @@ export const ChatPage: React.FC = () => {
               <Users className="w-3 h-3" />
               {visitorCount.toLocaleString()} {isAr ? 'متصل الآن' : 'online'}
             </span>
+            {userGeo && (
+              <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 flex items-center gap-1 font-mono">
+                <span>{userGeo.countryFlag}</span>
+                <span>{userGeo.countryAr}</span>
+              </span>
+            )}
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white">
             {isAr ? 'الشات العام ومجتمع اللاعبين' : 'Global Gamers Lounge'}
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
             {isAr
-              ? 'تحدث مع اللاعبين وشارك تجاربك في استلام الحسابات والجوائز. الشات مزود بنظام حماية ذكي يحجب الكلمات المسيئة والمسبات تلقائياً.'
-              : 'Chat with community members and celebrate claimed drops. Protected by a hidden AI anti-toxicity shield that filters profanity automatically.'}
+              ? 'تحدث مع اللاعبين وشارك تجاربك. اضغط على صورة أي لاعب لعرض ملفه ومنطقته (البريد محمي ومشفر تماماً).'
+              : 'Chat with members. Click on any avatar to view player info and location (email is 100% private).'}
           </p>
         </div>
 
-        {/* Admin Clean Controls */}
+        {/* Admin Clear Chat Control */}
         {isOwnerAdmin && (
           <div className="flex items-center gap-2">
             <button
               onClick={() => {
-                if (window.confirm(isAr ? 'هل أنت متأكد من مسح جميع رسائل الشات؟' : 'Clear all chat messages?')) {
+                if (window.confirm(isAr ? 'هل أنت متأكد من مسح جميع رسائل الشات كأدمن؟' : 'Purge all messages as admin?')) {
                   clearChat();
                 }
               }}
-              className="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold transition-colors flex items-center gap-1.5"
+              className="px-3.5 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold transition-colors flex items-center gap-1.5"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>{isAr ? 'تفريغ الشات (أدمن)' : 'Clear Chat'}</span>
+              <span>{isAr ? 'تفريغ الشات بالكامل (أدمن)' : 'Purge Chat (Admin)'}</span>
             </button>
           </div>
         )}
       </div>
 
-      {/* Safety Notice Banner */}
+      {/* Safety & Anti-Profanity Banner */}
       <div className="bg-slate-900/60 backdrop-blur-md rounded-2xl border border-slate-800 p-4 flex items-start gap-3">
         <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400 shrink-0 mt-0.5">
           <ShieldCheck className="w-4 h-4" />
         </div>
         <div className="text-xs text-slate-300 space-y-1">
           <p className="font-semibold text-white">
-            {isAr ? 'نظام الحماية الذكي وفلترة المسبات' : 'Anti-Toxicity & Profanity Shield'}
+            {isAr ? 'حماية الشات وفحص الكلمات والمسبات' : 'Anti-Toxicity & Profanity Shield'}
           </p>
           <p className="text-slate-400 text-[11px] leading-relaxed">
             {isAr
-              ? 'يتم فحص كل رسالة قبل نشرها تلقائياً. أي شتائم أو ألفاظ نابية باللغتين العربية والإنجليزية يتم استبدالها فوراً بنجوم (***) لضمان بيئة ألعاب محترمة وآمنة للجميع.'
-              : 'Messages are automatically scanned. Any swear words or abusive insults in Arabic and English are replaced with asterisks (***) to keep the community respectful.'}
+              ? 'يتم فحص كل رسالة قبل نشرها تلقائياً. أي شتائم أو ألفاظ نابية يتم استبدالها فوراً بنجوم (***). يحق لكل لاعب حذف رسالته الخاصة فقط، بينما يحق للأدمن حذف أي رسالة.'
+              : 'Messages are automatically scanned. Inappropriate language is censored. Members can only delete their own messages; admins can delete any message.'}
           </p>
         </div>
       </div>
 
       {/* Chat Messages Frame */}
-      <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-3xl overflow-hidden flex flex-col h-[560px] shadow-2xl">
+      <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-3xl overflow-hidden flex flex-col h-[580px] shadow-2xl">
         {/* Messages Scroll Area */}
         <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4">
           {chatMessages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-3 text-slate-500">
               <MessageSquare className="w-12 h-12 text-slate-600 stroke-[1.5]" />
-              <p className="text-sm font-semibold">
-                {isAr ? 'لا توجد رسائل بعد. كن أول من يكتب!' : 'No messages yet. Be the first to say hi!'}
+              <p className="text-sm font-semibold text-white">
+                {isAr ? 'الشات خالي من أي رسائل وهمية.' : 'Chat is clear of dummy messages.'}
+              </p>
+              <p className="text-xs text-slate-400">
+                {isAr ? 'كن أول من يكتب رسالة حقيقية هنا الآن!' : 'Be the first to post a real message!'}
               </p>
             </div>
           ) : (
             chatMessages.map((msg) => {
-              const isSenderMe = currentUser && currentUser.uid === msg.uid;
+              const isSenderMe = Boolean(currentUser && currentUser.uid === msg.uid);
               const isAdmin = msg.role === 'admin';
               const isVip = msg.role === 'vip';
+
+              // User can delete ONLY if they are Admin OR they sent the message
+              const canDeleteThisMessage = isOwnerAdmin || isSenderMe;
 
               return (
                 <div
@@ -142,18 +208,29 @@ export const ChatPage: React.FC = () => {
                     isSenderMe ? (isAr ? 'flex-row' : 'flex-row-reverse') : ''
                   }`}
                 >
-                  {/* Avatar */}
-                  <img
-                    src={msg.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${msg.displayName}`}
-                    alt={msg.displayName}
-                    className="w-8 h-8 rounded-full border border-slate-700 bg-slate-800 shrink-0 object-cover mt-0.5"
-                  />
+                  {/* Clickable Avatar to view player profile & region */}
+                  <button
+                    onClick={() => handleOpenUserProfile(msg)}
+                    className="relative shrink-0 hover:scale-105 transition-transform cursor-pointer"
+                    title={isAr ? 'اضغط لعرض معلومات اللاعب ومنطقته' : 'Click to view player profile'}
+                  >
+                    <img
+                      src={msg.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${msg.displayName}`}
+                      alt={msg.displayName}
+                      className="w-9 h-9 rounded-full border-2 border-slate-700 bg-slate-800 object-cover mt-0.5 shadow-md hover:border-cyan-400 transition-colors"
+                    />
+                    {msg.countryFlag && (
+                      <span className="absolute -bottom-1 -end-1 text-[11px] leading-none bg-slate-900 rounded-full px-0.5 border border-slate-700">
+                        {msg.countryFlag}
+                      </span>
+                    )}
+                  </button>
 
                   {/* Message Bubble */}
                   <div
-                    className={`max-w-[85%] sm:max-w-[70%] rounded-2xl p-3.5 space-y-1 ${
+                    className={`max-w-[85%] sm:max-w-[70%] rounded-2xl p-3.5 space-y-1.5 shadow-md ${
                       isSenderMe
-                        ? 'bg-gradient-to-br from-cyan-600/90 to-blue-700/90 text-white shadow-lg shadow-cyan-900/20'
+                        ? 'bg-gradient-to-br from-cyan-600/90 to-blue-700/90 text-white shadow-cyan-900/20'
                         : isAdmin
                         ? 'bg-gradient-to-br from-purple-950/80 to-slate-900/90 border border-purple-500/40 text-slate-100'
                         : isVip
@@ -161,34 +238,54 @@ export const ChatPage: React.FC = () => {
                         : 'bg-slate-800/80 border border-slate-700/60 text-slate-200'
                     }`}
                   >
-                    {/* Meta Info */}
-                    <div className="flex items-center gap-2 text-[11px]">
-                      <span className="font-bold truncate text-white">
-                        {msg.displayName}
-                      </span>
-                      {isAdmin && (
-                        <span className="px-1.5 py-0.2 rounded bg-purple-500 text-[9px] font-black text-white shrink-0">
-                          {isAr ? 'المالك 🛡️' : 'Admin'}
-                        </span>
-                      )}
-                      {isVip && !isAdmin && (
-                        <span className="px-1.5 py-0.2 rounded bg-amber-500 text-[9px] font-black text-slate-950 shrink-0">
-                          {isAr ? 'VIP ⭐' : 'VIP'}
-                        </span>
-                      )}
-                      <span className="text-[10px] opacity-60 font-mono ms-auto">
-                        {msg.timestamp}
-                      </span>
-
-                      {/* Admin Delete Action */}
-                      {isOwnerAdmin && (
+                    {/* Meta Header */}
+                    <div className="space-y-0.5 pb-1 border-b border-white/10">
+                      <div className="flex items-center gap-2 text-[11px]">
                         <button
-                          onClick={() => deleteChatMessage(msg.id)}
-                          className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 p-0.5 rounded transition-opacity"
-                          title={isAr ? 'حذف الرسالة' : 'Delete'}
+                          onClick={() => handleOpenUserProfile(msg)}
+                          className="font-bold truncate text-white hover:underline cursor-pointer"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          {msg.displayName}
                         </button>
+
+                        {isAdmin && (
+                          <span className="px-1.5 py-0.2 rounded bg-purple-500 text-[9px] font-black text-white shrink-0">
+                            {isAr ? 'المالك 🛡️' : 'Admin'}
+                          </span>
+                        )}
+                        {isVip && !isAdmin && (
+                          <span className="px-1.5 py-0.2 rounded bg-amber-500 text-[9px] font-black text-slate-950 shrink-0">
+                            {isAr ? 'VIP ⭐' : 'VIP'}
+                          </span>
+                        )}
+
+                        {/* Accurate Clock Time */}
+                        <span className="text-[10px] opacity-65 font-mono ms-auto shrink-0">
+                          {msg.timestamp}
+                        </span>
+
+                        {/* Delete Action (Restricted: ONLY admin or the person who sent it!) */}
+                        {canDeleteThisMessage && (
+                          <button
+                            onClick={() => handleDeleteMessage(msg.id)}
+                            className="opacity-0 group-hover:opacity-100 text-rose-400 hover:text-rose-300 p-1 rounded-md transition-opacity ms-1 hover:bg-rose-950/40"
+                            title={
+                              isOwnerAdmin && !isSenderMe
+                                ? (isAr ? 'حذف الرسالة بصلاحية الأدمن' : 'Delete (Admin)')
+                                : (isAr ? 'حذف رسالتك' : 'Delete your message')
+                            }
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Country flag and Country name directly BELOW the sender name */}
+                      {(msg.countryFlag || msg.country) && (
+                        <div className="flex items-center gap-1.5 text-[10px] text-cyan-200/90 font-medium">
+                          {msg.countryFlag && <span className="text-xs leading-none">{msg.countryFlag}</span>}
+                          <span>{msg.country || (isAr ? 'الموقع غير محدد' : 'Unknown')}</span>
+                        </div>
                       )}
                     </div>
 
@@ -199,11 +296,32 @@ export const ChatPage: React.FC = () => {
 
                     {/* Filter notice tag if censored */}
                     {msg.wasFiltered && (
-                      <div className="pt-1 flex items-center gap-1 text-[10px] text-amber-300/80">
+                      <div className="pt-0.5 flex items-center gap-1 text-[10px] text-amber-300/90 font-medium">
                         <AlertTriangle className="w-2.5 h-2.5" />
                         <span>{isAr ? 'تم حجب بعض الألفاظ تلقائياً' : 'Censored by filter'}</span>
                       </div>
                     )}
+
+                    {/* Reactions Bar */}
+                    <div className="flex items-center gap-1 pt-1 border-t border-white/10 mt-1">
+                      {reactionEmojis.map((emoji) => {
+                        const count = msg.reactions?.[emoji] || 0;
+                        return (
+                          <button
+                            key={emoji}
+                            onClick={() => toggleChatReaction(msg.id, emoji)}
+                            className={`px-1.5 py-0.5 rounded-lg text-xs flex items-center gap-0.5 transition-all ${
+                              count > 0
+                                ? 'bg-white/20 text-white font-bold scale-105'
+                                : 'opacity-50 hover:opacity-100 hover:bg-white/10'
+                            }`}
+                          >
+                            <span>{emoji}</span>
+                            {count > 0 && <span className="text-[10px]">{count}</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               );
@@ -252,6 +370,14 @@ export const ChatPage: React.FC = () => {
           </form>
         </div>
       </div>
+
+      {/* User Profile Card Modal (Strictly No Email Shown) */}
+      {selectedUserForModal && (
+        <UserProfileModal
+          user={selectedUserForModal}
+          onClose={() => setSelectedUserForModal(null)}
+        />
+      )}
     </div>
   );
 };

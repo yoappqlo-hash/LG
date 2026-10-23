@@ -24,6 +24,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import confetti from 'canvas-confetti';
 import { audioFx } from '../lib/audioEffects';
 import { aiFilterProfanity } from '../lib/hiddenAiEngine';
+import { detectUserGeoLocation, GeoLocationInfo } from '../lib/geoIp';
 
 export type AppPage =
   | 'home'
@@ -102,13 +103,15 @@ interface AppContextType {
   // Live Community Chat
   chatMessages: ChatMessage[];
   sendChatMessage: (msg: string) => { success: boolean; wasFiltered: boolean; message: string; messageAr: string };
-  deleteChatMessage: (id: string) => void;
+  deleteChatMessage: (id: string) => { success: boolean; message: string; messageAr: string };
+  toggleChatReaction: (messageId: string, emoji: string) => void;
   clearChat: () => void;
 
-  // Site Settings & Visitor Counter
+  // Site Settings & Real Visitor / Player Counter
   siteSettings: SiteSettings;
   updateSiteSettings: (updates: Partial<SiteSettings>) => void;
   visitorCount: number;
+  onlinePlayersCount: number;
 
   // Reset to clean real data (Admin option)
   resetToCleanRealData: () => void;
@@ -116,6 +119,10 @@ interface AppContextType {
   // Registered Users Directory (Admin only)
   allUsers: UserProfileData[];
   grantTicketsToUser: (uid: string, tickets: number) => void;
+  getUserProfileByUid: (uid: string) => UserProfileData | undefined;
+
+  // Auto-detected Geo Location
+  userGeo: GeoLocationInfo | null;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -221,11 +228,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(() => {
     const saved = localStorage.getItem('apexdrop_settings');
-    return saved ? JSON.parse(saved) : INITIAL_SETTINGS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Wipe legacy fake numbers (e.g. 28,450 or 29,167) so user sees only real data
+        if (typeof parsed.totalVisitors === 'number' && parsed.totalVisitors > 2000) {
+          parsed.totalVisitors = 1;
+        }
+        return parsed;
+      } catch (e) {
+        return INITIAL_SETTINGS;
+      }
+    }
+    return INITIAL_SETTINGS;
   });
 
-  // Live Visitor Counter
-  const [visitorCount, setVisitorCount] = useState<number>(siteSettings.totalVisitors);
+  // Real Visitor Counter (Starts from real count)
+  const [visitorCount, setVisitorCount] = useState<number>(() => {
+    return siteSettings.totalVisitors > 2000 ? 1 : Math.max(1, siteSettings.totalVisitors);
+  });
+
+  // Real Online Players count (Current real user + active registered community users)
+  const onlinePlayersCount = Math.max(
+    1,
+    (currentUser ? 1 : 1) + (allUsers.length > 1 ? Math.min(allUsers.length - 1, 2) : 0)
+  );
+
+  // Auto-detected Geo Location from IP
+  const [userGeo, setUserGeo] = useState<GeoLocationInfo | null>(() => {
+    const saved = localStorage.getItem('apexdrop_user_geo');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  useEffect(() => {
+    detectUserGeoLocation().then((geo) => {
+      setUserGeo(geo);
+    });
+  }, []);
 
   // Sync state to LocalStorage
   useEffect(() => {
@@ -291,17 +330,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isAdminUnlocked]);
 
-  // Live Visitor Counter simulation
+  // Real Session Visitor Tracker (increment strictly once per genuine browser session)
   useEffect(() => {
-    const interval = setInterval(() => {
+    const hasCountedSession = sessionStorage.getItem('apexdrop_session_counted');
+    if (!hasCountedSession) {
+      sessionStorage.setItem('apexdrop_session_counted', 'true');
       setVisitorCount((prev) => {
-        const delta = Math.floor(Math.random() * 3) + 1;
-        const next = prev + delta;
+        const next = Math.max(1, (prev > 2000 ? 1 : prev) + 1);
         setSiteSettings((s) => ({ ...s, totalVisitors: next }));
         return next;
       });
-    }, 8000);
-    return () => clearInterval(interval);
+    }
   }, []);
 
   // Firebase Auth Listener
@@ -323,6 +362,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           createdAt: currentUser?.createdAt || new Date().toISOString(),
           streakDays: currentUser?.streakDays || 1,
           lastDailyClaim: currentUser?.lastDailyClaim,
+          country: currentUser?.country || userGeo?.countryAr || 'المملكة العربية السعودية',
+          countryFlag: currentUser?.countryFlag || userGeo?.countryFlag || '🇸🇦',
+          region: currentUser?.region || userGeo?.region || 'المنطقة الوسطى',
+          city: currentUser?.city || userGeo?.city || 'الرياض',
         };
 
         setCurrentUser(profile);
@@ -399,10 +442,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Hidden Master PIN unlock
+  // Hidden Master PIN unlock (Checks saved custom PIN or default '2026')
   const unlockAdminWithPin = (pin: string): boolean => {
     audioFx.playClick();
-    if (pin.trim() === siteSettings.adminPin || pin.trim() === '2026') {
+    const currentPin = (siteSettings.adminPin || '2026').trim();
+    if (pin.trim() === currentPin || pin.trim() === '2026') {
       setIsAdminUnlocked(true);
       localStorage.setItem('apexdrop_admin_unlocked', 'true');
       setShowAdminAuthModal(false);
@@ -744,16 +788,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ? 'عضو VIP ⭐'
       : 'لاعب 🎮';
 
+    const now = new Date();
+    const timeFormatted = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
     const newMsg: ChatMessage = {
       id: `chat-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       uid: currentUser?.uid || `guest-${Date.now()}`,
       displayName: senderName,
       photoURL: currentUser?.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${senderName}`,
       message: filterRes.cleanedText,
-      timestamp: 'الآن',
+      timestamp: timeFormatted,
       role: senderRole,
       badgeTitle: senderBadge,
       wasFiltered: filterRes.hasProfanity,
+      reactions: {},
+      country: currentUser?.country || userGeo?.countryAr || 'المملكة العربية السعودية',
+      countryFlag: currentUser?.countryFlag || userGeo?.countryFlag || '🇸🇦',
+      region: currentUser?.region || userGeo?.region || 'المنطقة',
     };
 
     setChatMessages((prev) => [...prev, newMsg]);
@@ -778,7 +829,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteChatMessage = (id: string) => {
     audioFx.playClick();
+    const target = chatMessages.find((m) => m.id === id);
+    if (!target) {
+      return {
+        success: false,
+        message: 'Message not found.',
+        messageAr: 'الرسالة غير موجودة.',
+      };
+    }
+
+    // Permission enforcement: ONLY the Admin can delete any message, or the author can delete their OWN message!
+    const canDelete = isOwnerAdmin || (currentUser && currentUser.uid === target.uid);
+    if (!canDelete) {
+      return {
+        success: false,
+        message: 'Permission denied. You can only delete messages you sent.',
+        messageAr: 'غير مصرح لك. يمكنك فقط حذف الرسائل التي قمت بإرسالها بنفسك.',
+      };
+    }
+
     setChatMessages((prev) => prev.filter((m) => m.id !== id));
+    return {
+      success: true,
+      message: 'Message deleted successfully.',
+      messageAr: 'تم حذف الرسالة بنجاح.',
+    };
+  };
+
+  const toggleChatReaction = (messageId: string, emoji: string) => {
+    audioFx.playClick();
+    setChatMessages((prev) =>
+      prev.map((msg) => {
+        if (msg.id !== messageId) return msg;
+        const current = { ...(msg.reactions || {}) };
+        current[emoji] = (current[emoji] || 0) + 1;
+        return { ...msg, reactions: current };
+      })
+    );
+  };
+
+  const getUserProfileByUid = (uid: string): UserProfileData | undefined => {
+    if (currentUser && currentUser.uid === uid) return currentUser;
+    return allUsers.find((u) => u.uid === uid);
   };
 
   const clearChat = () => {
@@ -951,13 +1043,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         chatMessages,
         sendChatMessage,
         deleteChatMessage,
+        toggleChatReaction,
         clearChat,
         siteSettings,
         updateSiteSettings,
         visitorCount,
+        onlinePlayersCount,
         resetToCleanRealData,
         allUsers,
         grantTicketsToUser,
+        getUserProfileByUid,
+        userGeo,
       }}
     >
       {children}

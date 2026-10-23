@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useApp } from '../context/AppContext';
 import { ThemeMode } from '../types/app';
 import {
@@ -9,12 +9,6 @@ import {
   TreePine,
   Volume2,
   VolumeX,
-  Eye,
-  EyeOff,
-  ShieldAlert,
-  KeyRound,
-  ExternalLink,
-  Laptop,
   Check,
 } from 'lucide-react';
 
@@ -29,14 +23,9 @@ export const SettingsModal: React.FC = () => {
     soundEnabled,
     setSoundEnabled,
     setShowSettingsModal,
-    setShowAdminAuthModal,
-    isAdminUnlocked,
-    setCurrentPage,
-    currentUser,
   } = useApp();
 
   const isAr = lang === 'ar';
-  const [showAdminGuide, setShowAdminGuide] = useState(false);
 
   const themeOptions: { id: ThemeMode; label: string; labelAr: string; icon: any; desc: string; descAr: string }[] = [
     {
@@ -234,84 +223,6 @@ export const SettingsModal: React.FC = () => {
                   {isAr ? 'English' : 'العربية'}
                 </button>
               </div>
-            </div>
-          </div>
-
-          {/* Admin Secret Access Section */}
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 to-red-500/10 border border-amber-500/30 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
-                <KeyRound className="w-4 h-4" />
-                <span>{isAr ? 'دخول الأدمن والمالك (سري)' : 'Owner & Admin Access'}</span>
-              </div>
-              <button
-                onClick={() => setShowAdminGuide(!showAdminGuide)}
-                className="text-[11px] text-amber-400 underline font-semibold hover:text-amber-300"
-              >
-                {showAdminGuide
-                  ? (isAr ? 'إخفاء الشرح' : 'Hide Guide')
-                  : (isAr ? 'كيف أدخل لوحة الإدارة؟' : 'How to access?')}
-              </button>
-            </div>
-
-            {showAdminGuide && (
-              <div className="text-[11px] text-slate-300 space-y-2 bg-slate-950/70 p-3 rounded-xl border border-slate-800 leading-relaxed">
-                <p className="font-semibold text-amber-300">
-                  {isAr ? 'طرق الدخول إلى لوحة التحكم السرية للمالك:' : 'Ways to enter secret admin room:'}
-                </p>
-                <ol className="list-decimal list-inside space-y-1 text-slate-300">
-                  <li>
-                    <span className="font-bold text-white">
-                      {isAr ? 'اختصار لوحة المفاتيح:' : 'Keyboard Shortcut:'}
-                    </span>{' '}
-                    اضغط معاً على <code className="bg-slate-800 px-1 py-0.5 rounded text-cyan-400">Ctrl + Shift + A</code> من أي صفحة.
-                  </li>
-                  <li>
-                    <span className="font-bold text-white">
-                      {isAr ? 'الرابط المباشر:' : 'URL Parameter:'}
-                    </span>{' '}
-                    أضف <code className="bg-slate-800 px-1 py-0.5 rounded text-cyan-400">?admin=true</code> إلى عنوان الموقع في المتصفح.
-                  </li>
-                  <li>
-                    <span className="font-bold text-white">
-                      {isAr ? 'الرمز السري الرئيسي (Master PIN):' : 'Master PIN:'}
-                    </span>{' '}
-                    الرمز السري هو <code className="bg-slate-800 px-1.5 py-0.5 rounded text-amber-400 font-mono font-bold">2026</code>.
-                  </li>
-                  <li>
-                    <span className="font-bold text-white">
-                      {isAr ? 'تسجيل دخول المالك:' : 'Owner Google Login:'}
-                    </span>{' '}
-                    سجل الدخول بحسابك <code className="text-cyan-300 font-mono">yoappqlo@gmail.com</code> ليتم تفعيل كل الصلاحيات فوراً.
-                  </li>
-                </ol>
-              </div>
-            )}
-
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-[11px] text-slate-400">
-                {isAdminUnlocked
-                  ? (isAr ? '✅ أنت مسجل كأدمن حالياً' : '✅ Admin unlocked')
-                  : (isAr ? '🔒 اللوحة مقفلة ومخفية عن الزوار' : '🔒 Panel locked')}
-              </span>
-              <button
-                onClick={() => {
-                  setShowSettingsModal(false);
-                  if (isAdminUnlocked) {
-                    setCurrentPage('admin');
-                  } else {
-                    setShowAdminAuthModal(true);
-                  }
-                }}
-                className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
-              >
-                <KeyRound className="w-3.5 h-3.5" />
-                <span>
-                  {isAdminUnlocked
-                    ? (isAr ? 'فتح لوحة الإدارة الآن' : 'Open Admin Panel')
-                    : (isAr ? 'تسجيل الدخول كأدمن (PIN 2026)' : 'Unlock Admin')}
-                </span>
-              </button>
             </div>
           </div>
         </div>

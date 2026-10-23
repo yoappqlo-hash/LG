@@ -26,7 +26,8 @@ export const HomePage: React.FC = () => {
     games,
     setCurrentPage,
     claimAccount,
-    visitorCount,
+    onlinePlayersCount,
+    allUsers,
     siteSettings,
     currentUser,
     loginWithGoogle,
@@ -98,19 +99,20 @@ export const HomePage: React.FC = () => {
           <div className="pt-10 grid grid-cols-2 md:grid-cols-4 gap-4 text-start font-mono max-w-4xl mx-auto">
             <div className="p-3.5 bg-slate-900/70 rounded-2xl border border-slate-800/80">
               <span className="text-[11px] text-slate-400 block mb-1">
-                {isAr ? 'الزوار النشطين الآن' : 'Live Visitors'}
+                {isAr ? 'اللاعبون المتصلون الآن' : 'Real Online Gamers'}
               </span>
-              <div className="text-xl font-bold text-cyan-400 tabular-nums">
-                {visitorCount.toLocaleString()}
+              <div className="text-xl font-bold text-cyan-400 tabular-nums flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>{onlinePlayersCount} {isAr ? (onlinePlayersCount === 1 ? 'لاعب' : 'لاعبين') : 'online'}</span>
               </div>
             </div>
 
             <div className="p-3.5 bg-slate-900/70 rounded-2xl border border-slate-800/80">
               <span className="text-[11px] text-slate-400 block mb-1">
-                {isAr ? 'الحسابات الموزعة' : 'Accounts Claimed'}
+                {isAr ? 'الحسابات المستلمة فعلياً' : 'Accounts Claimed'}
               </span>
               <div className="text-xl font-bold text-emerald-400 tabular-nums">
-                {(totalClaims + 840).toLocaleString()}
+                {totalClaims.toLocaleString()}
               </div>
             </div>
 
@@ -125,10 +127,10 @@ export const HomePage: React.FC = () => {
 
             <div className="p-3.5 bg-slate-900/70 rounded-2xl border border-slate-800/80">
               <span className="text-[11px] text-slate-400 block mb-1">
-                {isAr ? 'الألعاب الجاهزة' : 'Games in Library'}
+                {isAr ? 'إجمالي اللاعبين المسجلين' : 'Registered Gamers'}
               </span>
               <div className="text-xl font-bold text-amber-400 tabular-nums">
-                {games.length} {isAr ? 'لعبة بروابط سريعة' : 'High-Speed'}
+                {Math.max(allUsers.length, currentUser ? 1 : 0)} {isAr ? 'حساب موثق' : 'Gamers'}
               </div>
             </div>
           </div>

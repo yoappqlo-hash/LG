@@ -79,6 +79,10 @@ export interface ChatMessage {
   role: 'admin' | 'vip' | 'user';
   badgeTitle?: string;
   wasFiltered?: boolean;
+  reactions?: Record<string, number>;
+  country?: string;
+  countryFlag?: string;
+  region?: string;
 }
 
 export interface UserClaimedItem {
@@ -104,6 +108,10 @@ export interface UserProfileData {
   createdAt: string;
   lastDailyClaim?: string;
   streakDays?: number;
+  country?: string;
+  countryFlag?: string;
+  region?: string;
+  city?: string;
 }
 
 export type ThemeMode = 'dark' | 'light' | 'anime' | 'natural';
