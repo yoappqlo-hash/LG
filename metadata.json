@@ -1,0 +1,6 @@
+{
+  "name": "ApexDrop - منصة توزيع الحسابات والجوائز والألعاب",
+  "description": "منصة احترافية لتوزيع حسابات الألعاب والخدمات المدفوعة، سحوبات وجوائز دورية، مكتبة تحميل ألعاب ولوحة تحكم حصرية للإدارة.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,133 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User account profile and administrative role metadata",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["Root Super Admin", "DevOps Lead", "Security Auditor", "Viewer"] },
+        "roleAr": { "type": "string" },
+        "twoFactorEnabled": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["active", "suspended"] },
+        "lastLogin": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "AdminRef": {
+      "title": "AdminRef",
+      "description": "Trusted admin whitelist map for role authorization",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "role": { "type": "string" },
+        "grantedAt": { "type": "string" }
+      },
+      "required": ["email", "role"]
+    },
+    "ServerNode": {
+      "title": "ServerNode",
+      "description": "Managed cloud server infrastructure node",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "nameAr": { "type": "string" },
+        "region": { "type": "string" },
+        "regionAr": { "type": "string" },
+        "ip": { "type": "string" },
+        "status": { "type": "string", "enum": ["running", "stopped", "restarting", "maintenance"] },
+        "cpuUsage": { "type": "number" },
+        "ramUsage": { "type": "number" },
+        "diskUsage": { "type": "number" },
+        "cores": { "type": "number" },
+        "ramGb": { "type": "number" },
+        "diskGb": { "type": "number" },
+        "uptime": { "type": "string" },
+        "activeSince": { "type": "string" },
+        "bandwidthGb": { "type": "number" },
+        "os": { "type": "string" }
+      },
+      "required": ["id", "name", "ip", "status"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "CMS published operational and public infrastructure announcements",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "titleAr": { "type": "string" },
+        "content": { "type": "string" },
+        "contentAr": { "type": "string" },
+        "type": { "type": "string", "enum": ["info", "maintenance", "critical", "release"] },
+        "published": { "type": "boolean" },
+        "publishedAt": { "type": "string" },
+        "pinned": { "type": "boolean" }
+      },
+      "required": ["id", "title", "content"]
+    },
+    "Runbook": {
+      "title": "Runbook",
+      "description": "CMS Operational disaster recovery and technical playbooks",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "titleAr": { "type": "string" },
+        "category": { "type": "string" },
+        "categoryAr": { "type": "string" },
+        "content": { "type": "string" },
+        "contentAr": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "author": { "type": "string" }
+      },
+      "required": ["id", "title", "content"]
+    },
+    "SystemSetting": {
+      "title": "SystemSetting",
+      "description": "Global server cluster configuration flags and maintenance states",
+      "type": "object",
+      "properties": {
+        "maintenanceMode": { "type": "boolean" },
+        "maintenanceMessage": { "type": "string" },
+        "maintenanceMessageAr": { "type": "string" },
+        "lockdownActive": { "type": "boolean" },
+        "autoScaling": { "type": "boolean" },
+        "ddosShield": { "type": "boolean" },
+        "auditLogging": { "type": "boolean" }
+      },
+      "required": ["maintenanceMode", "lockdownActive"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User identity and role settings"
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminRef" },
+      "description": "Trusted admin whitelist records"
+    },
+    "/servers/{serverId}": {
+      "schema": { "$ref": "#/entities/ServerNode" },
+      "description": "Cloud server node registry"
+    },
+    "/announcements/{announcementId}": {
+      "schema": { "$ref": "#/entities/Announcement" },
+      "description": "Public and administrative CMS announcement items"
+    },
+    "/runbooks/{runbookId}": {
+      "schema": { "$ref": "#/entities/Runbook" },
+      "description": "Technical documentation and operational runbooks"
+    },
+    "/system_config/{configId}": {
+      "schema": { "$ref": "#/entities/SystemSetting" },
+      "description": "Global cluster flags and disaster controls"
+    }
+  }
+}
